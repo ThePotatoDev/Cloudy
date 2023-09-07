@@ -1,0 +1,19 @@
+{
+  "backup_servers": [
+    {
+      "server_name": "dev",
+      "directories": [
+        "/home/minecraft/dev/plugins"
+      ]
+    }
+  ],
+  "app_key_id": "key_id",
+  "app_key": "key",
+  "temp_backup_path": "/home/server-backup/backups",
+  "database_info": {
+    "host": "127.0.0.1",
+    "database": "devnew",
+    "username": "minecraft",
+    "password": "password"
+  }
+}
