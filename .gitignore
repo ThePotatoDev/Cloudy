@@ -42,3 +42,6 @@ dependency-reduced-pom.xml
 
 #Libraries jar files
 libraries/*.jar
+
+.gradle
+.idea
