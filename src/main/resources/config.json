@@ -12,7 +12,7 @@
   "temp_backup_path": "/home/server-backup/backups",
   "database_info": {
     "host": "127.0.0.1",
-    "database": "devnew",
+    "database": "dev",
     "username": "minecraft",
     "password": "password"
   }
