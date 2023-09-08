@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.ir.backend.js.compile
 
 plugins {
     kotlin("jvm") version "1.9.10"
@@ -24,6 +25,8 @@ dependencies {
     implementation("org.zeroturnaround:zt-zip:1.16")
     implementation("com.backblaze.b2:b2-sdk-core:6.1.1")
     implementation("com.backblaze.b2:b2-sdk-httpclient:6.1.1")
+    implementation("org.redisson:redisson:3.23.4")
+    implementation("de.svenkubiak:jpushover:7.0.3")
 }
 
 tasks.withType<KotlinCompile> {
@@ -36,7 +39,13 @@ application {
 
 tasks {
     val fatJar = register<Jar>("fatJar") {
-        dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources")) // We need this for Gradle optimization to work
+        dependsOn.addAll(
+            listOf(
+                "compileJava",
+                "compileKotlin",
+                "processResources"
+            )
+        ) // We need this for Gradle optimization to work
         archiveClassifier.set("standalone") // Naming the jar
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         manifest { attributes(mapOf("Main-Class" to application.mainClass)) } // Provided we set it up in the application plugin configuration

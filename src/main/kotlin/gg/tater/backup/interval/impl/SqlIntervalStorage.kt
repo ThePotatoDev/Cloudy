@@ -1,16 +1,16 @@
-package gg.tater.backup.storage.impl
+package gg.tater.backup.interval.impl
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import gg.tater.backup.config.ApplicationConfig
-import gg.tater.backup.storage.BackupStorageDao
+import gg.tater.backup.interval.IntervalStorageDao
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.util.*
 
-class SqlBackupStorage(appConfig: ApplicationConfig) : BackupStorageDao {
+class SqlIntervalStorage(config: ApplicationConfig) : IntervalStorageDao {
 
     private object BackupInfo : Table("backup_info") {
         val id: Column<String> = varchar("id", 32).uniqueIndex()
@@ -19,11 +19,11 @@ class SqlBackupStorage(appConfig: ApplicationConfig) : BackupStorageDao {
     }
 
     init {
-        val config = HikariConfig().apply {
-            jdbcUrl = "jdbc:mysql://${appConfig.sqlHost}/${appConfig.sqlDatabase}"
+        Database.connect(HikariConfig().apply {
+            jdbcUrl = "jdbc:mysql://${config.sqlHost}/${config.sqlDatabase}"
             driverClassName = "com.mysql.cj.jdbc.Driver"
-            username = appConfig.sqlUsername
-            password = appConfig.sqlPassword
+            username = config.sqlUsername
+            password = config.sqlPassword
             maximumPoolSize = 4
             addDataSourceProperty("cachePrepStmts", "true")
             addDataSourceProperty("prepStmtCacheSize", "250")
@@ -34,10 +34,7 @@ class SqlBackupStorage(appConfig: ApplicationConfig) : BackupStorageDao {
             addDataSourceProperty("useJDBCCompliantTimezoneShift", "true")
             addDataSourceProperty("useLegacyDatetimeCode", "false")
             addDataSourceProperty("serverTimezone", TimeZone.getDefault().id)
-        }
-
-        val datasource = HikariDataSource(config)
-        Database.connect(datasource)
+        }.let { HikariDataSource(it) })
 
         transaction {
             SchemaUtils.createMissingTablesAndColumns(BackupInfo)
@@ -51,9 +48,10 @@ class SqlBackupStorage(appConfig: ApplicationConfig) : BackupStorageDao {
     }
 
     override suspend fun getLastBackup(input: String): Instant = newSuspendedTransaction {
-        Instant.ofEpochMilli(BackupInfo.select { BackupInfo.id eq input }.firstOrNull()?.getOrNull(BackupInfo.timestamp).let {
-            setLastBackup(input)
-            System.currentTimeMillis()
-        })
+        Instant.ofEpochMilli(
+            BackupInfo.select { BackupInfo.id eq input }.firstOrNull()?.getOrNull(BackupInfo.timestamp).let {
+                setLastBackup(input)
+                System.currentTimeMillis()
+            })
     }
 }

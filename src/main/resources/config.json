@@ -1,19 +1,40 @@
 {
-  "backup_servers": [
+  "settings": {
+    "backup_service": "BACK_BLAZE",
+    "interval_service": "SQL",
+    "interval_hours": 24,
+    "notify_service": "NONE",
+    "temp_path": "/home/server-backup/backups"
+  },
+  "backup_entries": [
     {
-      "server_name": "dev",
+      "name": "dev-backups",
       "directories": [
         "/home/minecraft/dev/plugins"
       ]
     }
   ],
-  "app_key_id": "key_id",
-  "app_key": "key",
-  "temp_backup_path": "/home/server-backup/backups",
-  "database_info": {
+  "backblaze_credentials": {
+    "app_key_id": "key_id",
+    "app_key": "key"
+  },
+  "amazon_credentials": {
+
+  },
+  "pushover_credentials": {
+    "user_key": "",
+    "user_name": "",
+    "app_token": ""
+  },
+  "redis_info": {
     "host": "127.0.0.1",
-    "database": "dev",
-    "username": "minecraft",
+    "password": "password",
+    "port": 3306
+  },
+  "sql_info": {
+    "host": "127.0.0.1",
+    "database": "database",
+    "username": "username",
     "password": "password"
   }
 }
