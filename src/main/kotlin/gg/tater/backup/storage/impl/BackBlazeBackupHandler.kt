@@ -11,6 +11,8 @@ import gg.tater.backup.getFormattedBackupDate
 import gg.tater.backup.storage.BackupStorageHandler
 import org.zeroturnaround.zip.ZipUtil
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.io.path.Path
 
 const val AGENT_NAME = "cloud-backup"
@@ -22,6 +24,8 @@ val BLAZE_LISTENER = B2UploadListener {
 }
 
 class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
+
+    private var service: ExecutorService = Executors.newFixedThreadPool(10)
 
     private var client: B2StorageClient = B2StorageClientFactory.createDefaultFactory()
         .create(config.backBlazeKeyId, config.backBlazeKey, AGENT_NAME)
@@ -37,7 +41,6 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
     override fun backup(name: String, directory: String) {
         val bucketId: String = client.getBucketOrNullByName(name).bucketId
         val formattedName: String = getFormattedBackupDate(name, directory)
-
         File(formattedName).apply {
             createNewFile()
             ZipUtil.pack(Path(directory).toFile(), this)
@@ -53,7 +56,7 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
                         .setServerSideEncryption(B2FileSseForRequest.createSseB2Aes256())
                         .build()
 
-                val version: B2FileVersion = client.uploadSmallFile(request)
+                val version: B2FileVersion = client.uploadLargeFile(request, service)
                 println("Uploaded ${version.fileName} to the B2 cloud. (${version.uploadTimestamp})")
             } finally {
                 delete()

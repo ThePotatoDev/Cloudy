@@ -22,27 +22,32 @@ import java.time.format.DateTimeFormatter
 import kotlin.io.path.Path
 import kotlin.time.Duration.Companion.minutes
 
+const val EMPTY_MILLIS = -1L
+
 val GSON: Gson = GsonBuilder()
     .setPrettyPrinting()
     .create()
-
 val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy hh:mm:ss")
-lateinit var config: ApplicationConfig
+
+private lateinit var config: ApplicationConfig
+private lateinit var dao: IntervalStorageDao
+private lateinit var handler: BackupStorageHandler
 
 suspend fun main(): Unit = runBlocking(Dispatchers.Default) {
     val path: Path = Paths.get("config.json")
     val reader = BufferedReader(withContext(Dispatchers.IO) {
         FileReader(path.toFile())
     })
+
     config = GSON.fromJson(reader, JsonObject::class.java).deserialize()
-    val dao: IntervalStorageDao = SqlIntervalStorage(config)
+    dao = SqlIntervalStorage(config)
+    handler = BackBlazeBackupHandler(config)
 
     val backupPath = Path(config.tempPath)
+
     withContext(Dispatchers.IO) {
         Files.createDirectories(backupPath)
     }
-
-    val handler: BackupStorageHandler = BackBlazeBackupHandler(config)
 
     launch {
         while (isActive) {
@@ -50,19 +55,22 @@ suspend fun main(): Unit = runBlocking(Dispatchers.Default) {
                 async {
                     val name = it.key
                     val directories = it.value
+                    val stamp: Instant = dao.getLastBackup(name).let { millis ->
+                        if (millis == EMPTY_MILLIS) {
+                            runBackup(name, directories, true)
+                            return@async
+                        }
 
-                    val stamp = dao.getLastBackup(name)
+                        Instant.ofEpochMilli(millis)
+                    }
+
                     val after: Boolean = Instant.now().isAfter(stamp.plus(config.intervalHours))
                     if (!after) {
                         println("Not enough time has passed since ${name}'s last backup, ignoring.")
                         return@async
                     }
 
-                    dao.setLastBackup(name)
-                    directories.forEach {
-                        println("Beginning backup of directory: $it")
-                        handler.backup(name, it)
-                    }
+                    runBackup(name, directories, false)
                 }
             }.awaitAll()
 
@@ -75,4 +83,12 @@ fun getFormattedBackupDate(name: String, directory: String): String {
     val suffix = directory.split("/").let { split -> split[split.lastIndex] }
     val current = LocalDateTime.now().atZone(ZoneId.of("America/New_York"))
     return "${config.tempPath}/$name/$suffix-${DATE_FORMATTER.format(current)}.zip"
+}
+
+private suspend fun runBackup(name: String, directories: List<String>, first: Boolean) {
+    dao.setLastBackup(name)
+    directories.forEach {
+        println("${if (first) "Initial" else "Beginning"} backup of directory $it")
+        handler.backup(name, it)
+    }
 }

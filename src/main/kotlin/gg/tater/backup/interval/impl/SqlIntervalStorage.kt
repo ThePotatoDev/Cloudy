@@ -2,6 +2,7 @@ package gg.tater.backup.interval.impl
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import gg.tater.backup.EMPTY_MILLIS
 import gg.tater.backup.config.ApplicationConfig
 import gg.tater.backup.interval.IntervalStorageDao
 import org.jetbrains.exposed.sql.*
@@ -47,11 +48,7 @@ class SqlIntervalStorage(config: ApplicationConfig) : IntervalStorageDao {
         }
     }
 
-    override suspend fun getLastBackup(input: String): Instant = newSuspendedTransaction {
-        Instant.ofEpochMilli(
-            BackupInfo.select { BackupInfo.id eq input }.firstOrNull()?.getOrNull(BackupInfo.timestamp).let {
-                setLastBackup(input)
-                System.currentTimeMillis()
-            })
+    override suspend fun getLastBackup(input: String): Long = newSuspendedTransaction {
+        BackupInfo.select { BackupInfo.id eq input }.firstOrNull()?.getOrNull(BackupInfo.timestamp).let { EMPTY_MILLIS }
     }
 }

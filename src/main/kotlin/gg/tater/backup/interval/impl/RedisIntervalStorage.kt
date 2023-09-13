@@ -73,9 +73,9 @@ class RedisBackupStorage(appConfig: ApplicationConfig) : IntervalStorageDao {
         map.fastPutSuspend(input, Instant.now())
     }
 
-    override suspend fun getLastBackup(input: String): Instant = runBlocking (Dispatchers.Default){
+    override suspend fun getLastBackup(input: String): Long = runBlocking (Dispatchers.Default){
         val map: RMap<String, Instant> = client.getMap(REDIS_MAP_NAME)
-        map.getAsync(input).awaitSuspend()
+        map.getAsync(input).awaitSuspend().toEpochMilli()
     }
 }
 
