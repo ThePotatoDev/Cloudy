@@ -65,11 +65,11 @@ fun JsonElement.deserialize(): ApplicationConfig {
         config.backBlazeKey = get("app_key").asString
     }
 
-    json.get("pushover_credentials").asJsonObject.apply {
-        config.pushoverUserKey = get("user_key").asString
-        config.pushoverUserName = get("user_name").asString
-        config.pushoverAppToken = get("app_token").asString
-    }
+//    json.get("pushover_credentials").asJsonObject.apply {
+//        config.pushoverUserKey = get("user_key").asString
+//        config.pushoverUserName = get("user_name").asString
+//        config.pushoverAppToken = get("app_token").asString
+//    }
 
     json.get("redis_info").asJsonObject.apply {
         config.redisHost = get("host").asString

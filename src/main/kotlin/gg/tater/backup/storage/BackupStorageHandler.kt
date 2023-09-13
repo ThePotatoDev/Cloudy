@@ -4,6 +4,6 @@ interface BackupStorageHandler {
 
     val id: String
 
-    suspend fun backup(name: String, directory: String)
+    fun backup(name: String, directory: String)
 
 }

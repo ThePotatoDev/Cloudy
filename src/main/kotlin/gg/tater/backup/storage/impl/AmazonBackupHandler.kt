@@ -9,7 +9,7 @@ class AmazonBackupHandler: BackupStorageHandler {
     override val id: String
         get() = AMAZON_SERVICE_ID
 
-    override suspend fun backup(name: String, directory: String) {
+    override fun backup(name: String, directory: String) {
         TODO("Not yet implemented")
     }
 }

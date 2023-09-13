@@ -27,6 +27,7 @@ dependencies {
     implementation("com.backblaze.b2:b2-sdk-httpclient:6.1.1")
     implementation("org.redisson:redisson:3.23.4")
     implementation("de.svenkubiak:jpushover:7.0.3")
+    implementation("commons-io:commons-io:2.6")
 }
 
 tasks.withType<KotlinCompile> {

@@ -34,18 +34,21 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
     override val id: String
         get() = BLAZE_SERVICE_ID
 
-    override suspend fun backup(name: String, directory: String) {
-        val bucket: B2Bucket = client.getBucketOrNullByName(name)
+    override fun backup(name: String, directory: String) {
+        val bucketId: String = client.getBucketOrNullByName(name).bucketId
+        val formattedName: String = getFormattedBackupDate(name, directory)
 
-        File(getFormattedBackupDate(name, directory)).apply {
+        File(formattedName).apply {
             createNewFile()
             ZipUtil.pack(Path(directory).toFile(), this)
-            println("Zip packed $name for server $name")
+            println("Zip packed $directory for bucket $name")
+
+            val objectName: String = formattedName.split("/").let { it[it.lastIndex] }
 
             try {
                 val source: B2ContentSource = B2FileContentSource.build(this)
                 val request: B2UploadFileRequest =
-                    B2UploadFileRequest.builder(bucket.bucketId, name, B2ContentTypes.B2_AUTO, source)
+                    B2UploadFileRequest.builder(bucketId, objectName, B2ContentTypes.B2_AUTO, source)
                         .setListener(BLAZE_LISTENER)
                         .setServerSideEncryption(B2FileSseForRequest.createSseB2Aes256())
                         .build()

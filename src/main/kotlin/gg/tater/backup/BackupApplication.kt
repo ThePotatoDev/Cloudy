@@ -17,6 +17,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.Path
 import kotlin.time.Duration.Companion.minutes
@@ -25,7 +26,7 @@ val GSON: Gson = GsonBuilder()
     .setPrettyPrinting()
     .create()
 
-val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy hh:mm:ss")
 lateinit var config: ApplicationConfig
 
 suspend fun main(): Unit = runBlocking(Dispatchers.Default) {
@@ -58,7 +59,10 @@ suspend fun main(): Unit = runBlocking(Dispatchers.Default) {
                     }
 
                     dao.setLastBackup(name)
-                    directories.forEach { handler.backup(name, it) }
+                    directories.forEach {
+                        println("Beginning backup of directory: $it")
+                        handler.backup(name, it)
+                    }
                 }
             }.awaitAll()
 
@@ -69,6 +73,6 @@ suspend fun main(): Unit = runBlocking(Dispatchers.Default) {
 
 fun getFormattedBackupDate(name: String, directory: String): String {
     val suffix = directory.split("/").let { split -> split[split.lastIndex] }
-    val current = LocalDateTime.now()
-    return "${config.tempPath}/${name}/${suffix}-${DATE_FORMATTER.format(current)}.zip"
+    val current = LocalDateTime.now().atZone(ZoneId.of("America/New_York"))
+    return "${config.tempPath}/$name/$suffix-${DATE_FORMATTER.format(current)}.zip"
 }
