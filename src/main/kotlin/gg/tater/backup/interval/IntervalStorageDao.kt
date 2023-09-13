@@ -4,6 +4,6 @@ interface IntervalStorageDao {
 
     suspend fun setLastBackup(input: String): Any
 
-    suspend fun getLastBackup(input: String): Long
+    suspend fun getLastBackup(input: String): Long?
 
 }
