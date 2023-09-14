@@ -10,7 +10,7 @@ abstract class BackupStorageHandler {
 
     abstract suspend fun backup(notifier: BackupNotifyHandler, bucketName: String, directory: String)
 
-    protected fun getFormattedBackupDate(directory: String): String {
+    protected fun getFormattedUploadName(directory: String): String {
         val name: String = directory.split("/").let { it[it.lastIndex] }
         val date: String = LocalDateTime.now().atZone(ZoneId.of("America/New_York"))
             .let { "${it.month.value}-${it.dayOfMonth}-${it.year}" }

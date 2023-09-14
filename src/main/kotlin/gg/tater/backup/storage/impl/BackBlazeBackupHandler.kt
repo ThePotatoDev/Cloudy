@@ -40,18 +40,18 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler()
             createNewFile()
             "Generating zip archive for $directory targeting bucket $bucketName".alert()
             ZipUtil.pack(Path(directory).toFile(), this)
-            getFormattedBackupDate(directory).let { uploadedName ->
+            getFormattedUploadName(directory).let { formattedName ->
                 try {
                     B2FileContentSource.build(this).apply {
                         val bucketId: String = client.getBucketOrNullByName(bucketName).bucketId
 
-                        B2UploadFileRequest.builder(bucketId, uploadedName, B2ContentTypes.B2_AUTO, this)
+                        B2UploadFileRequest.builder(bucketId, formattedName, B2ContentTypes.B2_AUTO, this)
                             .setServerSideEncryption(B2FileSseForRequest.createSseB2Aes256())
                             .build()
                             .apply {
-                                "Beginning upload of $uploadedName to the B2 cloud.".alert().let {
+                                "Beginning upload of $formattedName to the B2 cloud.".alert().let {
                                     client.uploadLargeFile(this, service)
-                                        .apply { "Successfully uploaded $uploadedName to the B2 cloud. (${uploadTimestamp})".alert() }
+                                        .apply { "Successfully uploaded $formattedName to the B2 cloud. (${uploadTimestamp})".alert() }
                                 }
                             }
                     }
