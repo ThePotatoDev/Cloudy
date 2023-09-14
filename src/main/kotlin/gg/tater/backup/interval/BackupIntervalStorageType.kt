@@ -1,5 +1,5 @@
 package gg.tater.backup.interval
 
-enum class IntervalStorageType {
+enum class BackupIntervalStorageType {
     SQL, REDIS
 }

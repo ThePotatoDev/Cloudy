@@ -3,14 +3,14 @@ package gg.tater.backup.interval.impl
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import gg.tater.backup.config.ApplicationConfig
-import gg.tater.backup.interval.IntervalStorageDao
+import gg.tater.backup.interval.BackupIntervalStorageDao
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.util.*
 
-class SqlIntervalStorage(config: ApplicationConfig) : IntervalStorageDao {
+class SqlIntervalStorage(config: ApplicationConfig) : BackupIntervalStorageDao {
 
     private object BackupInfo : Table("backup_info") {
         val id: Column<String> = varchar("id", 32).uniqueIndex()

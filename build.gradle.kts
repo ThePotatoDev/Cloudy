@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.ir.backend.js.compile
 
 plugins {
     kotlin("jvm") version "1.9.10"
+    id("io.ktor.plugin") version "2.3.4"
     application
 }
 
@@ -26,12 +27,12 @@ dependencies {
     implementation("com.backblaze.b2:b2-sdk-core:6.1.1")
     implementation("com.backblaze.b2:b2-sdk-httpclient:6.1.1")
     implementation("org.redisson:redisson:3.23.4")
-    implementation("de.svenkubiak:jpushover:7.0.3")
-    implementation("commons-io:commons-io:2.6")
+    implementation("io.ktor:ktor-server-core:2.3.4")
+    implementation("io.ktor:ktor-client-cio:2.3.4")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+kotlin {
+    jvmToolchain(17)
 }
 
 application {

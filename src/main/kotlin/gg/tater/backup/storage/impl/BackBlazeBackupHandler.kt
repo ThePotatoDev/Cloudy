@@ -2,12 +2,14 @@ package gg.tater.backup.storage.impl
 
 import com.backblaze.b2.client.B2StorageClient
 import com.backblaze.b2.client.B2StorageClientFactory
-import com.backblaze.b2.client.contentSources.B2ContentSource
 import com.backblaze.b2.client.contentSources.B2ContentTypes
 import com.backblaze.b2.client.contentSources.B2FileContentSource
-import com.backblaze.b2.client.structures.*
+import com.backblaze.b2.client.structures.B2BucketTypes
+import com.backblaze.b2.client.structures.B2FileSseForRequest
+import com.backblaze.b2.client.structures.B2UploadFileRequest
+import gg.tater.backup.alert
 import gg.tater.backup.config.ApplicationConfig
-import gg.tater.backup.getFormattedBackupDate
+import gg.tater.backup.notify.BackupNotifyHandler
 import gg.tater.backup.storage.BackupStorageHandler
 import org.zeroturnaround.zip.ZipUtil
 import java.io.File
@@ -15,15 +17,10 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.io.path.Path
 
-const val AGENT_NAME = "cloud-backup"
-const val BLAZE_SERVICE_ID = "backblaze"
+private const val AGENT_NAME = "cloud-backup"
+private const val BLAZE_SERVICE_ID = "backblaze"
 
-val BLAZE_LISTENER = B2UploadListener {
-    val percent: Double = (100 * (it.bytesSoFar / it.length.toDouble()))
-    println(String.format("  progress(%3.2f, %s)", percent, it.toString()))
-}
-
-class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
+class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler() {
 
     private var service: ExecutorService = Executors.newFixedThreadPool(10)
 
@@ -35,31 +32,32 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler {
             .forEach { client.createBucket(it, B2BucketTypes.ALL_PRIVATE) }
     }
 
-    override val id: String
-        get() = BLAZE_SERVICE_ID
+    override val id: String get() = BLAZE_SERVICE_ID
 
-    override fun backup(name: String, directory: String) {
-        val bucketId: String = client.getBucketOrNullByName(name).bucketId
-        val formattedName: String = getFormattedBackupDate(name, directory)
-        File(formattedName).apply {
+    override suspend fun backup(notifier: BackupNotifyHandler, bucketName: String, directory: String) {
+        // Create directory with bucket name
+        File(bucketName).apply {
             createNewFile()
+            "Generating zip archive for $directory targeting bucket $bucketName".alert()
             ZipUtil.pack(Path(directory).toFile(), this)
-            println("Zip packed $directory for bucket $name")
+            getFormattedBackupDate(directory).let { uploadedName ->
+                try {
+                    B2FileContentSource.build(this).apply {
+                        val bucketId: String = client.getBucketOrNullByName(bucketName).bucketId
 
-            val objectName: String = formattedName.split("/").let { it[it.lastIndex] }
-
-            try {
-                val source: B2ContentSource = B2FileContentSource.build(this)
-                val request: B2UploadFileRequest =
-                    B2UploadFileRequest.builder(bucketId, objectName, B2ContentTypes.B2_AUTO, source)
-                        .setListener(BLAZE_LISTENER)
-                        .setServerSideEncryption(B2FileSseForRequest.createSseB2Aes256())
-                        .build()
-
-                val version: B2FileVersion = client.uploadLargeFile(request, service)
-                println("Uploaded ${version.fileName} to the B2 cloud. (${version.uploadTimestamp})")
-            } finally {
-                delete()
+                        B2UploadFileRequest.builder(bucketId, uploadedName, B2ContentTypes.B2_AUTO, this)
+                            .setServerSideEncryption(B2FileSseForRequest.createSseB2Aes256())
+                            .build()
+                            .apply {
+                                "Beginning upload of $uploadedName to the B2 cloud.".alert().let {
+                                    client.uploadLargeFile(this, service)
+                                        .apply { "Successfully uploaded $uploadedName to the B2 cloud. (${uploadTimestamp})".alert() }
+                                }
+                            }
+                    }
+                } finally {
+                    delete()
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 package gg.tater.backup.interval
 
-interface IntervalStorageDao {
+interface BackupIntervalStorageDao {
 
     suspend fun setLastBackup(input: String): Any
 

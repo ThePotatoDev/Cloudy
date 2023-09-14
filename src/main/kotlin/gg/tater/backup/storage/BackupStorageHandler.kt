@@ -1,9 +1,20 @@
 package gg.tater.backup.storage
 
-interface BackupStorageHandler {
+import gg.tater.backup.notify.BackupNotifyHandler
+import java.time.LocalDateTime
+import java.time.ZoneId
 
-    val id: String
+abstract class BackupStorageHandler {
 
-    fun backup(name: String, directory: String)
+    abstract val id: String
+
+    abstract suspend fun backup(notifier: BackupNotifyHandler, bucketName: String, directory: String)
+
+    protected fun getFormattedBackupDate(directory: String): String {
+        val name: String = directory.split("/").let { it[it.lastIndex] }
+        val date: String = LocalDateTime.now().atZone(ZoneId.of("America/New_York"))
+            .let { "${it.month.value}-${it.dayOfMonth}-${it.year}" }
+        return "$name-$date.zip"
+    }
 
 }

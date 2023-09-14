@@ -10,7 +10,7 @@ import com.esotericsoftware.kryo.unsafe.UnsafeOutput
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
 import com.esotericsoftware.kryo.util.Pool
 import gg.tater.backup.config.ApplicationConfig
-import gg.tater.backup.interval.IntervalStorageDao
+import gg.tater.backup.interval.BackupIntervalStorageDao
 import io.netty.buffer.ByteBufAllocator
 import io.netty.buffer.ByteBufInputStream
 import io.netty.buffer.ByteBufOutputStream
@@ -34,46 +34,42 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-const val REDIS_MAP_NAME = "backup_map"
+private const val REDIS_MAP_NAME = "backup_map"
 
-class RedisBackupStorage(appConfig: ApplicationConfig) : IntervalStorageDao {
+class RedisIntervalStorage(private val config: ApplicationConfig) : BackupIntervalStorageDao {
 
-    private val client: RedissonClient
+    private val client: RedissonClient = Redisson.create(Config().apply {
+        useSingleServer().apply {
+            address = "redis://${config.redisHost}:${config.redisPort}"
+            password = config.redisPassword
 
-    init {
-        this.client = Redisson.create(Config().apply {
-            useSingleServer().apply {
-                address = "redis://${appConfig.redisHost}:${appConfig.redisPort}"
-                password = appConfig.redisPassword
+            transportMode = TransportMode.NIO
+            eventLoopGroup = NioEventLoopGroup(5)
+            nettyThreads = 5
+            executor = Executors.newCachedThreadPool()
 
-                transportMode = TransportMode.NIO
-                eventLoopGroup = NioEventLoopGroup(5)
-                nettyThreads = 5
-                executor = Executors.newCachedThreadPool()
-
-                codec = kryoCodec(kryoPool {
-                    setDefaultSerializer(SerializerFactory.FieldSerializerFactory().apply {
-                        config.fieldsCanBeNull = true
-                        config.serializeTransient = true
-                        config.setFieldsAsAccessible(true)
-                    })
-                    isRegistrationRequired = false
-                    instantiatorStrategy = DefaultInstantiatorStrategy(StdInstantiatorStrategy())
-                    serialize(
-                        { writeLong(it.mostSignificantBits); writeLong(it.leastSignificantBits) },
-                        { UUID(readLong(), readLong()) }
-                    )
+            codec = kryoCodec(kryoPool {
+                setDefaultSerializer(SerializerFactory.FieldSerializerFactory().apply {
+                    config.fieldsCanBeNull = true
+                    config.serializeTransient = true
+                    config.setFieldsAsAccessible(true)
                 })
-            }
-        })
-    }
+                isRegistrationRequired = false
+                instantiatorStrategy = DefaultInstantiatorStrategy(StdInstantiatorStrategy())
+                serialize(
+                    { writeLong(it.mostSignificantBits); writeLong(it.leastSignificantBits) },
+                    { UUID(readLong(), readLong()) }
+                )
+            })
+        }
+    })
 
-    override suspend fun setLastBackup(input: String): Any = runBlocking (Dispatchers.Default) {
+    override suspend fun setLastBackup(input: String): Any = runBlocking(Dispatchers.Default) {
         val map: RMap<String, Instant> = client.getMap(REDIS_MAP_NAME)
         map.fastPutSuspend(input, Instant.now())
     }
 
-    override suspend fun getLastBackup(input: String): Long = runBlocking (Dispatchers.Default){
+    override suspend fun getLastBackup(input: String): Long = runBlocking(Dispatchers.Default) {
         val map: RMap<String, Instant> = client.getMap(REDIS_MAP_NAME)
         map.getAsync(input).awaitSuspend().toEpochMilli()
     }

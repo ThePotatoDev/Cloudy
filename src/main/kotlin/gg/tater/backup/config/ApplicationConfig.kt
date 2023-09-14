@@ -2,14 +2,14 @@ package gg.tater.backup.config
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import gg.tater.backup.interval.IntervalStorageType
+import gg.tater.backup.interval.BackupIntervalStorageType
 import gg.tater.backup.notify.BackupNotifyType
 import gg.tater.backup.storage.BackupStorageType
 import java.time.Duration
 
 data class ApplicationConfig(
     var backupService: BackupStorageType = BackupStorageType.BACK_BLAZE,
-    var intervalService: IntervalStorageType = IntervalStorageType.SQL,
+    var intervalService: BackupIntervalStorageType = BackupIntervalStorageType.SQL,
     var notifyService: BackupNotifyType = BackupNotifyType.NONE,
     var intervalHours: Duration = Duration.ofHours(1L),
     var tempPath: String = "",
@@ -20,7 +20,6 @@ data class ApplicationConfig(
     var backBlazeKey: String = "",
 
     var pushoverUserKey: String = "",
-    var pushoverUserName: String = "",
     var pushoverAppToken: String = "",
 
     var redisHost: String = "",
@@ -39,7 +38,7 @@ fun JsonElement.deserialize(): ApplicationConfig {
 
     json.get("settings").asJsonObject.apply {
         config.backupService = get("backup_service").asString.let { BackupStorageType.valueOf(it) }
-        config.intervalService = get("interval_service").asString.let { IntervalStorageType.valueOf(it) }
+        config.intervalService = get("interval_service").asString.let { BackupIntervalStorageType.valueOf(it) }
         config.intervalHours = get("interval_hours").asLong.let { Duration.ofHours(it) }
         config.notifyService = get("notify_service").asString.let { BackupNotifyType.valueOf(it) }
         config.tempPath = get("temp_path").asString
@@ -65,11 +64,10 @@ fun JsonElement.deserialize(): ApplicationConfig {
         config.backBlazeKey = get("app_key").asString
     }
 
-//    json.get("pushover_credentials").asJsonObject.apply {
-//        config.pushoverUserKey = get("user_key").asString
-//        config.pushoverUserName = get("user_name").asString
-//        config.pushoverAppToken = get("app_token").asString
-//    }
+    json.get("pushover_credentials").asJsonObject.apply {
+        config.pushoverUserKey = get("user_key").asString
+        config.pushoverAppToken = get("app_token").asString
+    }
 
     json.get("redis_info").asJsonObject.apply {
         config.redisHost = get("host").asString
