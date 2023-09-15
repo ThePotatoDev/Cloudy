@@ -54,7 +54,7 @@ class BackBlazeBackupHandler(private val config: ApplicationConfig) : BackupStor
                             }
                     }
                 } finally {
-//                    delete()
+                    delete()
                 }
             }
         }
