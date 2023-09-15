@@ -12,7 +12,6 @@ import gg.tater.backup.config.ApplicationConfig
 import gg.tater.backup.notify.BackupNotifyHandler
 import gg.tater.backup.storage.BackupStorageHandler
 import org.zeroturnaround.zip.ZipUtil
-import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.io.path.Path
@@ -20,7 +19,7 @@ import kotlin.io.path.Path
 private const val AGENT_NAME = "cloud-backup"
 private const val BLAZE_SERVICE_ID = "backblaze"
 
-class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler() {
+class BackBlazeBackupHandler(private val config: ApplicationConfig) : BackupStorageHandler() {
 
     private var service: ExecutorService = Executors.newFixedThreadPool(10)
 
@@ -35,10 +34,9 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler()
     override val id: String get() = BLAZE_SERVICE_ID
 
     override suspend fun backup(notifier: BackupNotifyHandler, bucketName: String, directory: String) {
-        // Create directory with bucket name
-        File(bucketName).apply {
-            createNewFile()
-            "Generating zip archive for $directory targeting bucket $bucketName".alert()
+        val target = "${config.tempPath}/$bucketName/${directory.split("/").last()}"
+        "Generating zip archive for $directory targeting bucket $bucketName".alert()
+        Path("$target.zip").toFile().apply {
             ZipUtil.pack(Path(directory).toFile(), this)
             getFormattedUploadName(directory).let { formattedName ->
                 try {
@@ -56,7 +54,7 @@ class BackBlazeBackupHandler(config: ApplicationConfig) : BackupStorageHandler()
                             }
                     }
                 } finally {
-                    delete()
+//                    delete()
                 }
             }
         }
